@@ -1,0 +1,2 @@
+id,submitted_at,request_title,requestor_name,requestor_team,problem_statement,expected_outcome,revenue_impact,audit_risk,customer_impact,systems_touched,data_objects,required_changes,complexity,cross_functional_effort,timeline_pressure,control_impact,downstream_dependencies,priority_score,is_quick_win
+1,2025-11-14T01:31:13.917341,Test Request 1,Chris,RevOps,Test submission for validation.,Ensure submission works.,Medium,Medium,Some external impact,Salesforce;Oracle,,,Low,Low,Low,,,1.95,False
