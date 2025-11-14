@@ -1,9 +1,19 @@
 name = "form-backend"
 main = "submit.py"
-compatibility_date = "2025-11-13"
-compatibility_flags = ["python_workers"]  # Add this line for Python support
+compatibility_date = "2025-11-14"
+compatibility_flags = ["python_workers"]
 
 [vars]
 JIRA_BASE_URL = "https://selvera24.atlassian.net"
 JIRA_EMAIL = "selveracj@gmail.com"  # Change this
 JIRA_PROJECT_KEY = "RP"  # Update this
+ENVIRONMENT = "production"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "revenue-intake-db"
+database_id = "YOUR_DATABASE_ID_HERE"  # From `wrangler d1 create`
+
+[[r2_buckets]]  # Optional, for attachments
+binding = "ATTACHMENTS"
+bucket_name = "form-attachments"
