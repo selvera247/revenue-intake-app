@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Revenue Project Intake Form</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background-color: #f5f5f5; }
+        h1, h2 { color: #333; }
+        .form-section { background-color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"], textarea, select { width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        textarea { height: 100px; resize: vertical; }
+        .form-row { display: flex; gap: 20px; }
+        .form-row > div { flex: 1; }
+        button { background-color: #0052cc; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        button:hover { background-color: #003d99; }
+        .multiselect-container { margin-bottom: 10px; }
+        input[type="file"] { margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <h1>📥 Revenue Project Intake</h1>
+    <p>Use this form to capture <strong>all</strong> revenue-related requests from RevOps, Accounting, IT, Sales Ops, and FP&A.</p>
+
+    <form action="/submit" method="POST" enctype="multipart/form-data">
+        <!-- Section 1: Request Basics -->
+        <div class="form-section">
+            <h2>1. Request Basics</h2>
+            <div class="form-row">
+                <div>
+                    <label for="request_title">Request title</label>
+                    <input type="text" id="request_title" name="request_title" required>
+                </div>
+                <div>
+                    <label for="requestor_name">Requestor name</label>
+                    <input type="text" id="requestor_name" name="requestor_name" required>
+                </div>
+            </div>
+            <label for="requestor_team">Requestor team</label>
+            <select id="requestor_team" name="requestor_team" required>
+                <option value="">Select a team</option>
+                <option value="RevOps">RevOps</option>
+                <option value="Accounting">Accounting</option>
+                <option value="Sales Ops">Sales Ops</option>
+                <option value="IT">IT</option>
+                <option value="FP&A">FP&A</option>
+                <option value="Other">Other</option>
+            </select>
+            <label for="problem_statement">Problem statement (What is broken or manual?)</label>
+            <textarea id="problem_statement" name="problem_statement" required></textarea>
+            <label for="expected_outcome">Expected outcome (What does 'good' look like?)</label>
+            <textarea id="expected_outcome" name="expected_outcome" required></textarea>
+        </div>
+
+        <!-- Section 2: Business Impact -->
+        <div class="form-section">
+            <h2>2. Business Impact</h2>
+            <div class="form-row">
+                <div>
+                    <label for="revenue_impact">Revenue impact</label>
+                    <select id="revenue_impact" name="revenue_impact" required>
+                        <option value="">Select</option>
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="audit_risk">Compliance / audit risk</label>
+                    <select id="audit_risk" name="audit_risk" required>
+                        <option value="">Select</option>
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="customer_impact">Customer / partner impact</label>
+                    <select id="customer_impact" name="customer_impact" required>
+                        <option value="">Select</option>
+                        <option value="Internal only">Internal only</option>
+                        <option value="Some external impact">Some external impact</option>
+                        <option value="Direct customer/partner impact">Direct customer/partner impact</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3: Systems & Data -->
+        <div class="form-section">
+            <h2>3. Systems & Data</h2>
+            <label for="systems_touched">Systems touched</label>
+            <div class="multiselect-container">
+                <label><input type="checkbox" name="systems_touched" value="Salesforce"> Salesforce</label><br>
+                <label><input type="checkbox" name="systems_touched" value="Oracle"> Oracle</label><br>
+                <label><input type="checkbox" name="systems_touched" value="Tableau"> Tableau</label><br>
+                <label><input type="checkbox" name="systems_touched" value="Other"> Other</label>
+            </div>
+            <label for="data_objects">Key data objects (e.g., Opportunity, Quote, Invoice, GL, Subscription)</label>
+            <input type="text" id="data_objects" name="data_objects">
+            <label for="required_changes">Required data / system changes (as you understand them today)</label>
+            <textarea id="required_changes" name="required_changes"></textarea>
+        </div>
+
+        <!-- Section 4: Effort & Timing -->
+        <div class="form-section">
+            <h2>4. Effort & Timing</h2>
+            <div class="form-row">
+                <div>
+                    <label for="complexity">Complexity</label>
+                    <select id="complexity" name="complexity" required>
+                        <option value="">Select</option>
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="cross_functional_effort">Cross-functional effort (number of teams involved)</label>
+                    <select id="cross_functional_effort" name="cross_functional_effort" required>
+                        <option value="">Select</option>
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="timeline_pressure">Timeline pressure</label>
+                    <select id="timeline_pressure" name="timeline_pressure" required>
+                        <option value="">Select</option>
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 5: Controls & Dependencies -->
+        <div class="form-section">
+            <h2>5. Controls & Dependencies</h2>
+            <label for="control_impact">Impact on controls (SOX, revenue recognition, approvals)</label>
+            <input type="text" id="control_impact" name="control_impact">
+            <label for="downstream_dependencies">Downstream dependencies (Reporting, FP&A, audit, etc.)</label>
+            <textarea id="downstream_dependencies" name="downstream_dependencies"></textarea>
+        </div>
+
+        <!-- Section 6: Tags & Attachments -->
+        <div class="form-section">
+            <h2>6. Tags & Attachments</h2>
+            <label for="tags">Tags</label>
+            <div class="multiselect-container">
+                <label><input type="checkbox" name="tags" value="Billing"> Billing</label><br>
+                <label><input type="checkbox" name="tags" value="CPQ"> CPQ</label><br>
+                <label><input type="checkbox" name="tags" value="Oracle"> Oracle</label><br>
+                <label><input type="checkbox" name="tags" value="Reporting"> Reporting</label><br>
+                <label><input type="checkbox" name="tags" value="Controls"> Controls</label><br>
+                <label><input type="checkbox" name="tags" value="Other"> Other</label>
+            </div>
+            <label for="attachments">Attachments (screenshots, CSVs, logs, PDFs)</label>
+            <input type="file" id="attachments" name="attachments" accept=".png,.jpg,.jpeg,.csv,.xlsx,.txt,.pdf" multiple>
+        </div>
+
+        <button type="submit">Submit request</button>
+    </form>
+</body>
+</html>
