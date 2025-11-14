@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Revenue Intake Dashboard</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 1400px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+        h1 { color: #1a1a1a; font-size: 28px; }
+        .filters { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+        select, input[type="text"], button { padding: 10px; border-radius: 6px; border: 1px solid #d1d5db; font-size: 14px; }
+        button { background: #2563eb; color: white; border: none; cursor: pointer; transition: background 0.2s; }
+        button:hover { background: #1d4ed8; }
+        button.secondary { background: #6b7280; }
+        button.secondary:hover { background: #4b5563; }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+        th { background: #f9fafb; font-weight: 600; color: #374151; }
+        tr:last-child td { border-bottom: none; }
+        .status-select { width: 140px; padding: 6px; }
+        .action-btn { padding: 6px 12px; font-size: 14px; }
+        .pagination { display: flex; gap: 10px; margin-top: 20px; justify-content: center; }
+        .pagination button { padding: 8px 16px; }
+        @media (max-width: 768px) { table { font-size: 14px; } .filters { flex-direction: column; } }
+    </style>
+</head>
+<body>
+    <h1>Revenue Intake Dashboard</h1>
+    <div class="filters">
+        <select id="teamFilter">
+            <option value="">All Teams</option>
+            <option value="RevOps">RevOps</option>
+            <option value="Accounting">Accounting</option>
+            <option value="Sales Ops">Sales Ops</option>
+            <option value="IT">IT</option>
+            <option value="FP&A">FP&A</option>
+            <option value="Other">Other</option>
+        </select>
+        <select id="statusFilter">
+            <option value="">All Statuses</option>
+            <option value="New">New</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Complete">Complete</option>
+            <option value="Blocked">Blocked</option>
+            <option value="Cancelled">Cancelled</option>
+        </select>
+        <input type="text" id="searchInput" placeholder="Search title or requestor">
+        <button onclick="fetchData(1)">Filter</button>
+        <button class="secondary" onclick="exportCSV()">Export CSV</button>
+    </div>
+    <table id="requestsTable">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Requestor</th>
+                <th>Team</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th>Jira</th>
+                <th>Created</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    <div class="pagination" id="pagination"></div>
+
+    <script>
+        let currentPage = 1;
+        const pageSize = 20;
+
+        async function fetchData(page) {
+            currentPage = page;
+            const team = document.getElementById("teamFilter").value;
+            const status = document.getElementById("statusFilter").value;
+            const search = document.getElementById("searchInput").value;
+            let url = `/api/intake?page=${page}&pageSize=${pageSize}`;
+            const params = new URLSearchParams();
+            if (team) params.append("team", team);
+            if (status) params.append("status", status);
+            if (search) params.append("search", search);
+            if (params.toString()) url += `&${params}`;
+            
+            const response = await fetch(url);
+            const data = await response.json();
+            const tbody = document.querySelector("#requestsTable tbody");
+            tbody.innerHTML = "";
+            data.forEach(item => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${item.request_title}</td>
+                    <td>${item.requestor_name}</td>
+                    <td>${item.requestor_team}</td>
+                    <td>${item.priority_score.toFixed(2)}</td>
+                    <td>
+                        <select class="status-select" onchange="updateStatus('${item.id}', this.value)">
+                            <option value="New" ${item.status === "New" ? "selected" : ""}>New</option>
+                            <option value="In Progress" ${item.status === "In Progress" ? "selected" : ""}>In Progress</option>
+                            <option value="Complete" ${item.status === "Complete" ? "selected" : ""}>Complete</option>
+                            <option value="Blocked" ${item.status === "Blocked" ? "selected" : ""}>Blocked</option>
+                            <option value="Cancelled" ${item.status === "Cancelled" ? "selected" : ""}>Cancelled</option>
+                        </select>
+                    </td>
+                    <td>${item.jira_key ? `<a href="${JIRA_BASE_URL}/browse/${item.jira_key}" target="_blank">${item.jira_key}</a>` : '-'}</td>
+                    <td>${new Date(item.created_at).toLocaleDateString()}</td>
+                    <td><button class="action-btn secondary" onclick="deleteRequest('${item.id}')">Delete</button></td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            // Update pagination
+            const totalItems = data.length < pageSize ? currentPage * pageSize : (currentPage + 1) * pageSize;
+            const pagination = document.getElementById("pagination");
+            pagination.innerHTML = `
+                <button onclick="fetchData(${currentPage - 1})" ${currentPage === 1 ? "disabled" : ""}>Previous</button>
+                <span>Page ${currentPage}</span>
+                <button onclick="fetchData(${currentPage + 1})" ${data.length < pageSize ? "disabled" : ""}>Next</button>
+            `;
+        }
+
+        async function updateStatus(id, status) {
+            await fetch(`/api/intake/${id}`, {
+                method: "PUT",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({status})
+            });
+            fetchData(currentPage);
+        }
+
+        async function deleteRequest(id) {
+            if (confirm("Delete this request? Note: This does not delete the Jira task.")) {
+                await fetch(`/api/intake/${id}`, {method: "DELETE"});
+                fetchData(currentPage);
+            }
+        }
+
+        async function exportCSV() {
+            const response = await fetch("/api/export");
+            const csv = await response.text();
+            const blob = new Blob([csv], {type: "text/csv"});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "revenue_requests.csv";
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Initial load
+        fetchData(1);
+    </script>
+</body>
+</html>
