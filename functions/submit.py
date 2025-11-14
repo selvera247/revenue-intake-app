@@ -17,9 +17,9 @@ async def on_fetch(request: Request, env, ctx):
     path = url.pathname
     method = request.method
 
-    # CORS headers
+    # CORS headers (restricted to Pages domain)
     cors_headers = {
-        "Access-Control-Allow-Origin": "https://revenue-intake-form.your-subdomain.pages.dev",
+        "Access-Control-Allow-Origin": "YOUR_PAGES_DOMAIN_HERE",  # Replace with https://revenue-intake-form.your-subdomain.pages.dev
         "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
     }
@@ -126,6 +126,8 @@ async def on_fetch(request: Request, env, ctx):
                     ).bind(jira_key, record["id"]).run()
                 elif resp.status_code == 429:
                     return Response("Jira rate limit exceeded", status=429, headers=cors_headers)
+                elif resp.status_code >= 400:
+                    return Response(f"Jira error: {resp.text}", status=resp.status_code, headers=cors_headers)
 
             # Handle attachments (R2, optional)
             attachments = []
@@ -144,7 +146,7 @@ async def on_fetch(request: Request, env, ctx):
                                 headers={"X-Atlassian-Token": "no-check"}, files=files, timeout=15
                             )
                             if resp.status_code not in (200, 204):
-                                print(f"Failed to attach {filename}")
+                                print(f"Failed to attach {filename} to Jira")
 
             # Response
             msg = f"Request submitted. Priority score: {record['priority_score']}"
@@ -203,7 +205,7 @@ async def on_fetch(request: Request, env, ctx):
         if path == "/api/export" and method == "GET":
             results = await env.DB.prepare("SELECT * FROM intake_requests ORDER BY created_at DESC").all()
             if not results["results"]:
-                return Response("No data", status=404, headers=cors_headers)
+                return Response("No data to export", status=404, headers=cors_headers)
             headers = results["results"][0].keys()
             csv = ",".join(headers) + "\n" + "\n".join(
                 ",".join(f'"{str(v).replace('"', '""')}"' for v in row.values()) for row in results["results"]
