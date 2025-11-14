@@ -12,7 +12,7 @@ ENVIRONMENT = "production"
 [[d1_databases]]
 binding = "DB"
 database_name = "revenue-intake-db"
-database_id = "YOUR_DATABASE_ID_HERE"  # From `wrangler d1 create`
+database_id = "146a27c4-1225-4d23-8369-b957af2e0078"  # From `wrangler d1 create`
 
 [[r2_buckets]]  # Optional, for attachments
 binding = "ATTACHMENTS"
