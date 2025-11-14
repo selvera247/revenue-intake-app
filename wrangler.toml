@@ -1,6 +1,8 @@
 name = "form-backend"
 main = "submit.py"
 compatibility_date = "2025-11-13"
+compatibility_flags = ["python_workers"]  # Add this line for Python support
+
 [vars]
 JIRA_BASE_URL = "https://selvera24.atlassian.net"
 JIRA_EMAIL = "selveracj@gmail.com"  # Change this
