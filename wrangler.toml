@@ -1,0 +1,9 @@
+name = "form-backend"
+main = "submit.py"
+compatibility_date = "2025-11-13"  # Use current date or later for Python support
+
+[vars]
+JIRA_BASE_URL = "https://your-site.atlassian.net"  # Change this
+JIRA_EMAIL = "your.email@example.com"  # Change this
+JIRA_API_TOKEN = "your_api_token_here"  # Change this
+JIRA_PROJECT_KEY = "FORM"  # Change this
