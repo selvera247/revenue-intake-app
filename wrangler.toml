@@ -1,4 +1,4 @@
-name = "form-backend"
+name = "intake"
 main = "functions/submit.py"
 compatibility_date = "2025-11-14"
 compatibility_flags = ["python_workers"]
