@@ -1,5 +1,5 @@
 name = "form-backend"
-main = "submit.py"
+main = "functions/submit.py"
 compatibility_date = "2025-11-14"
 compatibility_flags = ["python_workers"]
 
