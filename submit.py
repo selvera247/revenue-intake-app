@@ -19,7 +19,7 @@ async def on_fetch(request: Request, env, ctx):
 
     # CORS headers (restricted to Pages domain)
     cors_headers = {
-        "Access-Control-Allow-Origin": "YOUR_PAGES_DOMAIN_HERE",  # Replace with https://revenue-intake-form.your-subdomain.pages.dev
+        "Access-Control-Allow-Origin": "https://revenue-intake-app.pages.dev",  # Replace with https://revenue-intake-form.your-subdomain.pages.dev
         "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
     }
