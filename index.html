@@ -1,119 +1,567 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Revenue Intake Form</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-        h1 { color: #333; }
-        form { display: flex; flex-direction: column; gap: 15px; }
-        label { font-weight: bold; }
-        input, select, textarea { padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: 100%; }
-        textarea { height: 100px; }
-        button { padding: 10px; background: #0052cc; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        button:hover { background: #003d99; }
-    </style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+```
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+        background: #efefef;
+        min-height: 100vh;
+        padding: 40px 20px;
+    }
+
+    .container {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+    .header {
+        text-align: center;
+        margin-bottom: 40px;
+        animation: fadeInDown 0.6s ease;
+    }
+
+    .header h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 10px;
+        color: #e60023;
+    }
+
+    .header p {
+        font-size: 1.1rem;
+        color: #5f5f5f;
+    }
+
+    .progress-container {
+        background: #fff;
+        border-radius: 24px;
+        height: 8px;
+        margin-bottom: 30px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    .progress-bar {
+        background: #e60023;
+        height: 100%;
+        width: 0%;
+        transition: width 0.3s ease;
+        border-radius: 24px;
+    }
+
+    .form-section {
+        background: white;
+        padding: 32px;
+        border-radius: 24px;
+        margin-bottom: 16px;
+        box-shadow: 0 1px 8px rgba(0,0,0,0.08);
+        animation: fadeInUp 0.6s ease both;
+    }
+
+    .form-section:hover {
+        box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+        transition: box-shadow 0.3s ease;
+    }
+
+    .form-section:nth-child(1) { animation-delay: 0.1s; }
+    .form-section:nth-child(2) { animation-delay: 0.2s; }
+    .form-section:nth-child(3) { animation-delay: 0.3s; }
+    .form-section:nth-child(4) { animation-delay: 0.4s; }
+    .form-section:nth-child(5) { animation-delay: 0.5s; }
+    .form-section:nth-child(6) { animation-delay: 0.6s; }
+
+    h2 {
+        color: #211922;
+        font-size: 1.5rem;
+        margin-bottom: 24px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .section-number {
+        background: #e60023;
+        color: white;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.95rem;
+        font-weight: 700;
+    }
+
+    .form-group {
+        margin-bottom: 24px;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #211922;
+        font-size: 0.95rem;
+    }
+
+    .required {
+        color: #e60023;
+        margin-left: 4px;
+    }
+
+    input[type="text"],
+    textarea,
+    select {
+        width: 100%;
+        padding: 14px 16px;
+        border: 2px solid #cdcdcd;
+        border-radius: 16px;
+        font-size: 1rem;
+        transition: all 0.2s ease;
+        background: white;
+        font-family: inherit;
+        color: #211922;
+    }
+
+    input[type="text"]:hover,
+    textarea:hover,
+    select:hover {
+        border-color: #767676;
+    }
+
+    input[type="text"]:focus,
+    textarea:focus,
+    select:focus {
+        outline: none;
+        border-color: #e60023;
+        box-shadow: 0 0 0 4px rgba(230, 0, 35, 0.08);
+    }
+
+    textarea {
+        resize: vertical;
+        min-height: 100px;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+    }
+
+    .checkbox-group {
+        background: #f7f7f7;
+        border-radius: 16px;
+        padding: 16px;
+        border: 2px solid #efefef;
+    }
+
+    .checkbox-item {
+        display: flex;
+        align-items: center;
+        padding: 12px;
+        margin-bottom: 4px;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .checkbox-item:hover {
+        background: white;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        margin-right: 12px;
+        cursor: pointer;
+        accent-color: #e60023;
+    }
+
+    input[type="file"] {
+        padding: 16px;
+        border: 2px dashed #cdcdcd;
+        border-radius: 16px;
+        width: 100%;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        background: #f7f7f7;
+        font-size: 0.95rem;
+        color: #211922;
+    }
+
+    input[type="file"]:hover {
+        border-color: #e60023;
+        background: white;
+    }
+
+    .submit-container {
+        text-align: center;
+        margin-top: 32px;
+    }
+
+    button[type="submit"] {
+        background: #e60023;
+        color: white;
+        padding: 16px 48px;
+        border: none;
+        border-radius: 24px;
+        cursor: pointer;
+        font-size: 1.1rem;
+        font-weight: 700;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 12px rgba(230, 0, 35, 0.25);
+    }
+
+    button[type="submit"]:hover {
+        background: #ad081b;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(230, 0, 35, 0.35);
+    }
+
+    button[type="submit"]:active {
+        transform: translateY(0);
+    }
+
+    select[multiple] {
+        min-height: 120px;
+    }
+
+    .helper-text {
+        font-size: 0.875rem;
+        color: #767676;
+        margin-top: 6px;
+    }
+
+    /* Pinterest-style pins decoration */
+    .pin-decoration {
+        position: absolute;
+        width: 8px;
+        height: 8px;
+        background: #e60023;
+        border-radius: 50%;
+        top: -4px;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+
+    .form-section {
+        position: relative;
+    }
+
+    @keyframes fadeInDown {
+        from {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .header h1 {
+            font-size: 2rem;
+        }
+        .form-section {
+            padding: 24px;
+        }
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* Custom select dropdown arrow */
+    select {
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23211922' d='M10.293 3.293L6 7.586 1.707 3.293A1 1 0 00.293 4.707l5 5a1 1 0 001.414 0l5-5a1 1 0 10-1.414-1.414z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 16px center;
+        padding-right: 40px;
+    }
+</style>
+```
+
 </head>
 <body>
-    <h1>Revenue Intake Form</h1>
-    <form action="/submit" method="POST" enctype="multipart/form-data">
-        <label for="request_title">Request Title *</label>
-        <input type="text" id="request_title" name="request_title" required>
+    <div class="container">
+        <div class="header">
+            <h1>📌 Revenue Intake Form</h1>
+            <p>Submit your revenue-related project request</p>
+        </div>
 
-        <label for="requestor_name">Requestor Name *</label>
-        <input type="text" id="requestor_name" name="requestor_name" required>
+```
+    <div class="progress-container">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
 
-        <label for="requestor_team">Requestor Team *</label>
-        <select id="requestor_team" name="requestor_team" required>
-            <option value="RevOps">RevOps</option>
-            <option value="Accounting">Accounting</option>
-            <option value="Sales Ops">Sales Ops</option>
-            <option value="IT">IT</option>
-            <option value="FP&A">FP&A</option>
-            <option value="Other">Other</option>
-        </select>
+    <form action="/submit" method="POST" enctype="multipart/form-data" id="intakeForm">
+        
+        <!-- Section 1: Request Basics -->
+        <div class="form-section">
+            <div class="pin-decoration"></div>
+            <h2><span class="section-number">1</span> Request Basics</h2>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="request_title">Request Title<span class="required">*</span></label>
+                    <input type="text" id="request_title" name="request_title" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="requestor_name">Requestor Name<span class="required">*</span></label>
+                    <input type="text" id="requestor_name" name="requestor_name" required>
+                </div>
+            </div>
 
-        <label for="problem_statement">Problem Statement *</label>
-        <textarea id="problem_statement" name="problem_statement" required></textarea>
+            <div class="form-group">
+                <label for="requestor_team">Requestor Team<span class="required">*</span></label>
+                <select id="requestor_team" name="requestor_team" required>
+                    <option value="">Select a team</option>
+                    <option value="RevOps">RevOps</option>
+                    <option value="Accounting">Accounting</option>
+                    <option value="Sales Ops">Sales Ops</option>
+                    <option value="IT">IT</option>
+                    <option value="FP&A">FP&A</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
 
-        <label for="expected_outcome">Expected Outcome *</label>
-        <textarea id="expected_outcome" name="expected_outcome" required></textarea>
+            <div class="form-group">
+                <label for="problem_statement">Problem Statement<span class="required">*</span></label>
+                <textarea id="problem_statement" name="problem_statement" required placeholder="What is broken or manual?"></textarea>
+            </div>
 
-        <label for="revenue_impact">Revenue Impact</label>
-        <select id="revenue_impact" name="revenue_impact">
-            <option value="Low">Low</option>
-            <option value="Medium">Medium</option>
-            <option value="High">High</option>
-        </select>
+            <div class="form-group">
+                <label for="expected_outcome">Expected Outcome<span class="required">*</span></label>
+                <textarea id="expected_outcome" name="expected_outcome" required placeholder="What does 'good' look like?"></textarea>
+            </div>
+        </div>
 
-        <label for="audit_risk">Audit Risk</label>
-        <select id="audit_risk" name="audit_risk">
-            <option value="Low">Low</option>
-            <option value="Medium">Medium</option>
-            <option value="High">High</option>
-        </select>
+        <!-- Section 2: Business Impact -->
+        <div class="form-section">
+            <div class="pin-decoration"></div>
+            <h2><span class="section-number">2</span> Business Impact</h2>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="revenue_impact">Revenue Impact</label>
+                    <select id="revenue_impact" name="revenue_impact">
+                        <option value="">Select impact level</option>
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                    </select>
+                </div>
 
-        <label for="customer_impact">Customer Impact</label>
-        <select id="customer_impact" name="customer_impact">
-            <option value="Low">Low</option>
-            <option value="Medium">Medium</option>
-            <option value="High">High</option>
-        </select>
+                <div class="form-group">
+                    <label for="audit_risk">Audit Risk</label>
+                    <select id="audit_risk" name="audit_risk">
+                        <option value="">Select risk level</option>
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                    </select>
+                </div>
 
-        <label for="systems_touched">Systems Touched (select multiple)</label>
-        <select id="systems_touched" name="systems_touched" multiple>
-            <option value="Salesforce">Salesforce</option>
-            <option value="NetSuite">NetSuite</option>
-            <option value="SAP">SAP</option>
-            <option value="Other">Other</option>
-        </select>
+                <div class="form-group">
+                    <label for="customer_impact">Customer Impact</label>
+                    <select id="customer_impact" name="customer_impact">
+                        <option value="">Select impact level</option>
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                    </select>
+                </div>
+            </div>
+        </div>
 
-        <label for="data_objects">Data Objects</label>
-        <input type="text" id="data_objects" name="data_objects">
+        <!-- Section 3: Systems & Data -->
+        <div class="form-section">
+            <div class="pin-decoration"></div>
+            <h2><span class="section-number">3</span> Systems & Data</h2>
+            
+            <div class="form-group">
+                <label>Systems Touched</label>
+                <div class="checkbox-group">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="sys_salesforce" name="systems_touched" value="Salesforce">
+                        <label for="sys_salesforce" style="margin: 0; font-weight: 500;">Salesforce</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="sys_netsuite" name="systems_touched" value="NetSuite">
+                        <label for="sys_netsuite" style="margin: 0; font-weight: 500;">NetSuite</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="sys_sap" name="systems_touched" value="SAP">
+                        <label for="sys_sap" style="margin: 0; font-weight: 500;">SAP</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="sys_other" name="systems_touched" value="Other">
+                        <label for="sys_other" style="margin: 0; font-weight: 500;">Other</label>
+                    </div>
+                </div>
+            </div>
 
-        <label for="required_changes">Required Changes</label>
-        <textarea id="required_changes" name="required_changes"></textarea>
+            <div class="form-group">
+                <label for="data_objects">Data Objects</label>
+                <input type="text" id="data_objects" name="data_objects" placeholder="e.g., Opportunity, Quote, Invoice">
+                <p class="helper-text">List the key data objects involved</p>
+            </div>
 
-        <label for="complexity">Complexity</label>
-        <select id="complexity" name="complexity">
-            <option value="Low">Low</option>
-            <option value="Medium">Medium</option>
-            <option value="High">High</option>
-        </select>
+            <div class="form-group">
+                <label for="required_changes">Required Changes</label>
+                <textarea id="required_changes" name="required_changes" placeholder="Describe required data or system changes"></textarea>
+            </div>
+        </div>
 
-        <label for="cross_functional_effort">Cross-Functional Effort</label>
-        <select id="cross_functional_effort" name="cross_functional_effort">
-            <option value="Low">Low</option>
-            <option value="Medium">Medium</option>
-            <option value="High">High</option>
-        </select>
+        <!-- Section 4: Effort & Timing -->
+        <div class="form-section">
+            <div class="pin-decoration"></div>
+            <h2><span class="section-number">4</span> Effort & Timing</h2>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="complexity">Complexity</label>
+                    <select id="complexity" name="complexity">
+                        <option value="">Select complexity</option>
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                    </select>
+                </div>
 
-        <label for="timeline_pressure">Timeline Pressure</label>
-        <select id="timeline_pressure" name="timeline_pressure">
-            <option value="Low">Low</option>
-            <option value="Medium">Medium</option>
-            <option value="High">High</option>
-        </select>
+                <div class="form-group">
+                    <label for="cross_functional_effort">Cross-Functional Effort</label>
+                    <select id="cross_functional_effort" name="cross_functional_effort">
+                        <option value="">Select effort level</option>
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                    </select>
+                </div>
 
-        <label for="control_impact">Control Impact</label>
-        <input type="text" id="control_impact" name="control_impact">
+                <div class="form-group">
+                    <label for="timeline_pressure">Timeline Pressure</label>
+                    <select id="timeline_pressure" name="timeline_pressure">
+                        <option value="">Select pressure level</option>
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                    </select>
+                </div>
+            </div>
+        </div>
 
-        <label for="downstream_dependencies">Downstream Dependencies</label>
-        <input type="text" id="downstream_dependencies" name="downstream_dependencies">
+        <!-- Section 5: Controls & Dependencies -->
+        <div class="form-section">
+            <div class="pin-decoration"></div>
+            <h2><span class="section-number">5</span> Controls & Dependencies</h2>
+            
+            <div class="form-group">
+                <label for="control_impact">Control Impact</label>
+                <input type="text" id="control_impact" name="control_impact" placeholder="SOX, revenue recognition, approvals">
+            </div>
 
-        <label for="tags">Tags (select multiple)</label>
-        <select id="tags" name="tags" multiple>
-            <option value="Urgent">Urgent</option>
-            <option value="Compliance">Compliance</option>
-            <option value="Revenue">Revenue</option>
-            <option value="Other">Other</option>
-        </select>
+            <div class="form-group">
+                <label for="downstream_dependencies">Downstream Dependencies</label>
+                <input type="text" id="downstream_dependencies" name="downstream_dependencies" placeholder="Reporting, FP&A, audit, etc.">
+            </div>
+        </div>
 
-        <label for="attachment">Attachment (optional)</label>
-        <input type="file" id="attachment" name="attachment">
+        <!-- Section 6: Tags & Attachments -->
+        <div class="form-section">
+            <div class="pin-decoration"></div>
+            <h2><span class="section-number">6</span> Tags & Attachments</h2>
+            
+            <div class="form-group">
+                <label>Tags</label>
+                <div class="checkbox-group">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="tag_urgent" name="tags" value="Urgent">
+                        <label for="tag_urgent" style="margin: 0; font-weight: 500;">Urgent</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="tag_compliance" name="tags" value="Compliance">
+                        <label for="tag_compliance" style="margin: 0; font-weight: 500;">Compliance</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="tag_revenue" name="tags" value="Revenue">
+                        <label for="tag_revenue" style="margin: 0; font-weight: 500;">Revenue</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="tag_other" name="tags" value="Other">
+                        <label for="tag_other" style="margin: 0; font-weight: 500;">Other</label>
+                    </div>
+                </div>
+            </div>
 
-        <button type="submit">Submit Request</button>
+            <div class="form-group">
+                <label for="attachment">Attachment (Optional)</label>
+                <input type="file" id="attachment" name="attachment">
+                <p class="helper-text">Upload supporting documents, screenshots, or files</p>
+            </div>
+        </div>
+
+        <div class="submit-container">
+            <button type="submit">Submit Request</button>
+        </div>
     </form>
+</div>
+
+<script>
+    const form = document.getElementById('intakeForm');
+    const progressBar = document.getElementById('progressBar');
+    const requiredInputs = form.querySelectorAll('[required]');
+
+    function updateProgress() {
+        let filled = 0;
+        requiredInputs.forEach(input => {
+            if (input.value.trim() !== '') {
+                filled++;
+            }
+        });
+        const percentage = (filled / requiredInputs.length) * 100;
+        progressBar.style.width = percentage + '%';
+    }
+
+    requiredInputs.forEach(input => {
+        input.addEventListener('input', updateProgress);
+        input.addEventListener('change', updateProgress);
+    });
+
+    form.addEventListener('submit', (e) => {
+        // Allow form to submit normally to backend
+        console.log('Form submitted');
+    });
+
+    updateProgress();
+</script>
+```
+
 </body>
 </html>
