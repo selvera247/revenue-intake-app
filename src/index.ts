@@ -207,6 +207,14 @@ async function handleSubmit(request: Request, env: Env): Promise<Response> {
     )
     .run();
 
+  // DEBUG: see which Jira env vars are present
+  console.log("JIRA env present?", {
+    baseUrl: !!env.JIRA_BASE_URL,
+    email: !!env.JIRA_EMAIL,
+    token: !!env.JIRA_API_TOKEN,
+    projectKey: !!env.JIRA_PROJECT_KEY,
+  });
+
   // Create Jira issue (if env variables present)
   let jiraKey: string | null = null;
   if (
@@ -216,6 +224,8 @@ async function handleSubmit(request: Request, env: Env): Promise<Response> {
     env.JIRA_PROJECT_KEY
   ) {
     jiraKey = await createJiraIssue(env, record);
+    console.log("Jira issue creation result key:", jiraKey);
+
     if (jiraKey) {
       await env.DB.prepare(
         "UPDATE intake_requests SET jira_key = ? WHERE id = ?"
@@ -224,6 +234,8 @@ async function handleSubmit(request: Request, env: Env): Promise<Response> {
         .run();
       record.jira_key = jiraKey;
     }
+  } else {
+    console.warn("Skipping Jira issue creation; Jira env not fully set.");
   }
 
   // Handle attachments to R2 + optionally Jira
@@ -288,6 +300,13 @@ async function createJiraIssue(env: Env, record: any): Promise<string | null> {
 
   const auth = btoa(`${env.JIRA_EMAIL}:${env.JIRA_API_TOKEN}`);
 
+  console.log("Creating Jira issue with:", {
+    url,
+    projectKey: env.JIRA_PROJECT_KEY,
+    email: env.JIRA_EMAIL,
+    summary,
+  });
+
   const resp = await fetch(url, {
     method: "POST",
     headers: {
@@ -297,6 +316,8 @@ async function createJiraIssue(env: Env, record: any): Promise<string | null> {
     },
     body: JSON.stringify(payload),
   });
+
+  console.log("Jira status:", resp.status);
 
   if (resp.status === 429) {
     console.warn("Jira rate limit hit for issue creation");
@@ -310,6 +331,7 @@ async function createJiraIssue(env: Env, record: any): Promise<string | null> {
   }
 
   const data = await resp.json();
+  console.log("Jira issue created:", data);
   return data.key ?? null;
 }
 
