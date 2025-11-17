@@ -19,7 +19,7 @@ async def on_fetch(request: Request, env, ctx):
 
     # CORS headers (restricted to Pages domain)
     cors_headers = {
-        "Access-Control-Allow-Origin": "https://revenue-intake-app.pages.dev",  # Replace with https://revenue-intake-form.your-subdomain.pages.dev
+        "Access-Control-Allow-Origin": "https://revenue-intake-app.pages.dev",
         "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
     }
@@ -120,7 +120,6 @@ async def on_fetch(request: Request, env, ctx):
                 )
                 if resp.status_code in (200, 201):
                     jira_key = resp.json().get("key")
-                    # Update D1 with Jira key
                     await env.DB.prepare(
                         "UPDATE intake_requests SET jira_key = ? WHERE id = ?"
                     ).bind(jira_key, record["id"]).run()
@@ -129,24 +128,24 @@ async def on_fetch(request: Request, env, ctx):
                 elif resp.status_code >= 400:
                     return Response(f"Jira error: {resp.text}", status=resp.status_code, headers=cors_headers)
 
-            # Handle attachments (R2, optional)
+            # Handle attachments (R2)
             attachments = []
             if hasattr(env, "ATTACHMENTS"):
-                for key in form_data.keys():
-                    if hasattr(key, "filename") and key.filename:
-                        filename = f"{record['id']}_{key.filename}"
-                        await env.ATTACHMENTS.put(filename, key)
+                for key, value in form_data.items():
+                    if hasattr(value, "filename") and value.filename:
+                        filename = f"{record['id']}_{value.filename}"
+                        await env.ATTACHMENTS.put(filename, await value.body())
                         attachments.append(filename)
                         if jira_key:
                             jira_url = f"{JIRA_BASE_URL.rstrip('/')}/rest/api/3/issue/{jira_key}/attachments"
-                            file_content = await env.ATTACHMENTS.get(filename)
-                            files = {"file": (filename, file_content, "application/octet-stream")}
+                            file_obj = await env.ATTACHMENTS.get(filename)
+                            files = {"file": (filename, await file_obj.body(), "application/octet-stream")}
                             resp = requests.post(
                                 jira_url, auth=HTTPBasicAuth(JIRA_EMAIL, JIRA_API_TOKEN),
                                 headers={"X-Atlassian-Token": "no-check"}, files=files, timeout=15
                             )
                             if resp.status_code not in (200, 204):
-                                print(f"Failed to attach {filename} to Jira")
+                                print(f"Failed to attach {filename} to Jira: {resp.status_code} - {resp.text}")
 
             # Response
             msg = f"Request submitted. Priority score: {record['priority_score']}"
@@ -171,7 +170,7 @@ async def on_fetch(request: Request, env, ctx):
                 params.append(status)
             if search:
                 query += " AND (request_title LIKE ? OR requestor_name LIKE ?)"
-                params.append(f"%{search}%", f"%{search}%")
+                params.extend([f"%{search}%", f"%{search}%"])
             query += " ORDER BY priority_score DESC, created_at DESC LIMIT 100"
             results = await env.DB.prepare(query).bind(*params).all()
             return Response(json.dumps(results["results"]), headers={**cors_headers, "Content-Type": "application/json"})
@@ -215,6 +214,7 @@ async def on_fetch(request: Request, env, ctx):
         return Response("Not Found", status=404, headers=cors_headers)
 
     except Exception as e:
+        print(f"Error: {str(e)}")  # Log error for debugging
         return Response(json.dumps({"error": str(e)}), status=500, headers={**cors_headers, "Content-Type": "application/json"})
 
 class Default:
