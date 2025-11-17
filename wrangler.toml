@@ -16,4 +16,4 @@ database_id = "146a27c4-1225-4d23-8369-b957af2e0078"  # From `wrangler d1 create
 
 [[r2_buckets]]  # Optional, for attachments
 binding = "ATTACHMENTS"
-bucket_name = "form-attached"
+bucket_name = "form-attachments"
