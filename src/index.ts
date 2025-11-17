@@ -60,9 +60,9 @@ export default {
         }
       }
 
-      // GET /api/export (CSV)
+      // GET /api/export (CSV, secured by x-api-key)
       if (pathname === "/api/export" && request.method === "GET") {
-        return handleExportCSV(env);
+        return handleExportCSV(request, env);
       }
 
       return new Response("Not Found", { status: 404, headers: corsHeaders() });
@@ -141,7 +141,7 @@ async function handleSubmit(request: Request, env: Env): Promise<Response> {
     });
   }
 
-  // Priority score (same formula as Python)
+  // Priority score (same formula as your Python)
   const PRIORITY_MAP: Record<string, number> = {
     Low: 1,
     Medium: 2,
@@ -163,7 +163,7 @@ async function handleSubmit(request: Request, env: Env): Promise<Response> {
     ).toFixed(2)
   );
 
-  // Insert into D1 (same columns as Python)
+  // Insert into D1
   await env.DB.prepare(
     `
       INSERT INTO intake_requests (
@@ -222,7 +222,7 @@ async function handleSubmit(request: Request, env: Env): Promise<Response> {
   // Handle attachments to R2 + optionally Jira
   const attachments: string[] = [];
   if (env.ATTACHMENTS) {
-    for (const [key, value] of formData.entries()) {
+    for (const [, value] of formData.entries()) {
       if (value instanceof File && value.name) {
         const filename = `${record.id}_${value.name}`;
         await env.ATTACHMENTS.put(filename, value.stream());
@@ -292,6 +292,7 @@ async function createJiraIssue(env: Env, record: any): Promise<string | null> {
   });
 
   if (resp.status === 429) {
+    console.warn("Jira rate limit hit for issue creation");
     return null;
   }
 
@@ -372,13 +373,11 @@ async function handleListIntake(request: Request, env: Env): Promise<Response> {
   }
 
   if (search) {
-    query +=
-      " AND (request_title LIKE ? OR requestor_name LIKE ?)";
+    query += " AND (request_title LIKE ? OR requestor_name LIKE ?)";
     params.push(`%${search}%`, `%${search}%`);
   }
 
-  query +=
-    " ORDER BY priority_score DESC, created_at DESC LIMIT 100";
+  query += " ORDER BY priority_score DESC, created_at DESC LIMIT 100";
 
   const result = await env.DB.prepare(query).bind(...params).all();
   const rows = result.results || [];
@@ -451,10 +450,7 @@ async function handleUpdateIntake(
 
 // ---------- /api/intake/:id (DELETE) ----------
 
-async function handleDeleteIntake(
-  id: string,
-  env: Env
-): Promise<Response> {
+async function handleDeleteIntake(id: string, env: Env): Promise<Response> {
   await env.DB.prepare("DELETE FROM intake_requests WHERE id = ?")
     .bind(id)
     .run();
@@ -465,9 +461,21 @@ async function handleDeleteIntake(
   });
 }
 
-// ---------- /api/export (CSV) ----------
+// ---------- /api/export (CSV, secured) ----------
 
-async function handleExportCSV(env: Env): Promise<Response> {
+async function handleExportCSV(
+  request: Request,
+  env: Env
+): Promise<Response> {
+  // Require x-api-key header
+  const providedKey = request.headers.get("x-api-key");
+  if (!providedKey || providedKey !== env.EXPORT_API_KEY) {
+    return new Response("Unauthorized", {
+      status: 401,
+      headers: corsHeaders(),
+    });
+  }
+
   const result = await env.DB.prepare(
     "SELECT * FROM intake_requests ORDER BY created_at DESC"
   ).all();
