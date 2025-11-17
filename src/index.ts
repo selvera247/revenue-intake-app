@@ -23,7 +23,11 @@ function corsHeaders(extra: Record<string, string> = {}): Headers {
 }
 
 export default {
-  async fetch(request, env, ctx): Promise<Response> {
+  async fetch(
+    request: Request,
+    env: Env,
+    ctx: ExecutionContext
+  ): Promise<Response> {
     const url = new URL(request.url);
     const { pathname } = url;
 
@@ -35,12 +39,12 @@ export default {
     try {
       // POST /submit
       if (pathname === "/submit" && request.method === "POST") {
-        return handleSubmit(request, env);
+        return await handleSubmit(request, env);
       }
 
       // GET /api/intake
       if (pathname === "/api/intake" && request.method === "GET") {
-        return handleListIntake(request, env);
+        return await handleListIntake(request, env);
       }
 
       // /api/intake/:id
@@ -48,24 +52,27 @@ export default {
         const id = pathname.split("/").pop() || "";
 
         if (request.method === "GET") {
-          return handleGetIntake(id, env);
+          return await handleGetIntake(id, env);
         }
 
         if (request.method === "PUT") {
-          return handleUpdateIntake(id, request, env);
+          return await handleUpdateIntake(id, request, env);
         }
 
         if (request.method === "DELETE") {
-          return handleDeleteIntake(id, env);
+          return await handleDeleteIntake(id, env);
         }
       }
 
       // GET /api/export (CSV, secured by x-api-key)
       if (pathname === "/api/export" && request.method === "GET") {
-        return handleExportCSV(request, env);
+        return await handleExportCSV(request, env);
       }
 
-      return new Response("Not Found", { status: 404, headers: corsHeaders() });
+      return new Response("Not Found", {
+        status: 404,
+        headers: corsHeaders(),
+      });
     } catch (err: any) {
       console.error("Error in fetch:", err);
       const body = JSON.stringify({ error: String(err?.message || err) });
@@ -75,7 +82,7 @@ export default {
       });
     }
   },
-} satisfies ExportedHandler<Env>;
+};
 
 // ---------- /submit ----------
 
@@ -353,7 +360,10 @@ async function attachFileToJira(
 
 // ---------- /api/intake (list) ----------
 
-async function handleListIntake(request: Request, env: Env): Promise<Response> {
+async function handleListIntake(
+  request: Request,
+  env: Env
+): Promise<Response> {
   const url = new URL(request.url);
   const team = url.searchParams.get("team");
   const status = url.searchParams.get("status");
