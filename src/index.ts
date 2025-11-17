@@ -11,7 +11,7 @@ export interface Env {
   EXPORT_API_KEY: string;
 }
 
-const CORS_ORIGIN = "https://revenue-intake-app.pages.dev";
+const CORS_ORIGIN = "*";
 
 function corsHeaders(extra: Record<string, string> = {}): Headers {
   return new Headers({
