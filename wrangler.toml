@@ -1,5 +1,5 @@
 name = "intake"
-main = "functions/submit.py"
+main = "src/index.ts"
 compatibility_date = "2025-11-14"
 compatibility_flags = ["python_workers"]
 
