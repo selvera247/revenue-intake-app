@@ -265,35 +265,58 @@ async function handleSubmit(request: Request, env: Env): Promise<Response> {
   return new Response(msg, { status: 200, headers: corsHeaders() });
 }
 
+// ---------- Jira integration (ADF description) ----------
+
 async function createJiraIssue(env: Env, record: any): Promise<string | null> {
   const url = env.JIRA_BASE_URL.replace(/\/$/, "") + "/rest/api/3/issue";
   const summary = record.request_title || "Revenue Request";
 
   const descriptionParts = [
-    `*Requestor:* ${record.requestor_name} (${record.requestor_team})`,
+    `Requestor: ${record.requestor_name} (${record.requestor_team})`,
     "",
-    "*Problem Statement*",
+    "Problem Statement",
     record.problem_statement || "-",
     "",
-    "*Expected Outcome*",
+    "Expected Outcome",
     record.expected_outcome || "-",
     "",
-    "*Systems Touched*",
+    "Systems Touched",
     record.systems_touched || "-",
     "",
-    "*Tags*",
+    "Tags",
     record.tags || "-",
     "",
-    `*Priority Score:* ${record.priority_score}`,
+    `Priority Score: ${record.priority_score}`,
   ];
 
-  const description = descriptionParts.join("\n");
+  const descriptionText = descriptionParts.join("\n");
+
+  // Atlassian Document Format (ADF) wrapper
+  const descriptionADF = {
+    type: "doc",
+    version: 1,
+    content: descriptionText.split("\n").map((line) => {
+      if (!line) {
+        return { type: "paragraph", content: [] as any[] };
+      }
+      return {
+        type: "paragraph",
+        content: [
+          {
+            type: "text",
+            text: line,
+          },
+        ],
+      };
+    }),
+  };
 
   const payload = {
     fields: {
       project: { key: env.JIRA_PROJECT_KEY },
       summary,
-      description,
+      description: descriptionADF,
+      // If your issue type isn't literally "Task", change this name
       issuetype: { name: "Task" },
     },
   };
