@@ -17,10 +17,90 @@ function corsHeaders(extra: Record<string, string> = {}): Headers {
   return new Headers({
     "Access-Control-Allow-Origin": CORS_ORIGIN,
     "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Headers": "Content-Type, x-api-key",
     ...extra,
   });
 }
+
+// ---------- Scoring config + helpers ----------
+
+type ScoringConfig = {
+  version: string;
+  revenue_weight: number;
+  audit_weight: number;
+  timeline_weight: number;
+  complexity_weight: number;
+  cross_functional_weight: number;
+};
+
+async function getActiveScoringConfig(env: Env): Promise<ScoringConfig> {
+  try {
+    const result = await env.DB.prepare(
+      `
+      SELECT version,
+             revenue_weight,
+             audit_weight,
+             timeline_weight,
+             complexity_weight,
+             cross_functional_weight
+      FROM scoring_config
+      ORDER BY datetime(effective_from) DESC
+      LIMIT 1
+      `
+    ).all();
+
+    const row = (result.results || [])[0] as any | undefined;
+    if (row) {
+      return {
+        version: row.version,
+        revenue_weight: Number(row.revenue_weight),
+        audit_weight: Number(row.audit_weight),
+        timeline_weight: Number(row.timeline_weight),
+        complexity_weight: Number(row.complexity_weight),
+        cross_functional_weight: Number(row.cross_functional_weight),
+      };
+    }
+  } catch (err) {
+    console.error("Error loading scoring_config:", err);
+  }
+
+  // Fallback default (matches original weights)
+  console.warn("Using default scoring config (no rows found)");
+  return {
+    version: "v1.0-default",
+    revenue_weight: 0.35,
+    audit_weight: 0.3,
+    timeline_weight: 0.2,
+    complexity_weight: 0.1,
+    cross_functional_weight: 0.05,
+  };
+}
+
+async function recordScoreSnapshot(
+  env: Env,
+  intakeId: string,
+  scoringVersion: string | null,
+  score: number,
+  status: string
+): Promise<void> {
+  try {
+    const version = scoringVersion || "unknown";
+    const snapshotAt = new Date().toISOString();
+    await env.DB.prepare(
+      `
+      INSERT INTO intake_scores_history
+        (intake_id, scoring_version, score, status, snapshot_at)
+      VALUES (?, ?, ?, ?, ?)
+      `
+    )
+      .bind(intakeId, version, score, status, snapshotAt)
+      .run();
+  } catch (err) {
+    console.error("Error recording score snapshot:", err);
+  }
+}
+
+// ---------- Worker entrypoint ----------
 
 export default {
   async fetch(
@@ -107,7 +187,9 @@ async function handleSubmit(request: Request, env: Env): Promise<Response> {
     revenue_impact: formData.get("revenue_impact")?.toString() || "",
     audit_risk: formData.get("audit_risk")?.toString() || "",
     customer_impact: formData.get("customer_impact")?.toString() || "",
-    systems_touched: (formData.getAll("systems_touched") as string[]).join(";"),
+    systems_touched: (formData.getAll("systems_touched") as string[]).join(
+      ";"
+    ),
     data_objects: formData.get("data_objects")?.toString() || "",
     required_changes: formData.get("required_changes")?.toString() || "",
     complexity: formData.get("complexity")?.toString() || "",
@@ -123,6 +205,7 @@ async function handleSubmit(request: Request, env: Env): Promise<Response> {
     created_at: new Date().toISOString(),
     updated_at: null,
     jira_key: null,
+    scoring_version: null,
   };
 
   // Validate required fields
@@ -148,7 +231,11 @@ async function handleSubmit(request: Request, env: Env): Promise<Response> {
     });
   }
 
-  // Priority score (same formula as your Python)
+  // Load scoring config
+  const cfg = await getActiveScoringConfig(env);
+  record.scoring_version = cfg.version;
+
+  // Map Low/Medium/High to 1/2/3
   const PRIORITY_MAP: Record<string, number> = {
     Low: 1,
     Medium: 2,
@@ -160,13 +247,14 @@ async function handleSubmit(request: Request, env: Env): Promise<Response> {
   const x = PRIORITY_MAP[record.cross_functional_effort] ?? 0;
   const t = PRIORITY_MAP[record.timeline_pressure] ?? 0;
 
+  // Priority score using config weights
   record.priority_score = Number(
     (
-      r * 0.35 +
-      a * 0.3 +
-      t * 0.2 +
-      (4 - c) * 0.1 +
-      (4 - x) * 0.05
+      r * cfg.revenue_weight +
+      a * cfg.audit_weight +
+      t * cfg.timeline_weight +
+      (4 - c) * cfg.complexity_weight +
+      (4 - x) * cfg.cross_functional_weight
     ).toFixed(2)
   );
 
@@ -177,8 +265,8 @@ async function handleSubmit(request: Request, env: Env): Promise<Response> {
         id, request_title, requestor_name, requestor_team, problem_statement, expected_outcome,
         revenue_impact, audit_risk, customer_impact, systems_touched, data_objects, required_changes,
         complexity, cross_functional_effort, timeline_pressure, control_impact, downstream_dependencies,
-        tags, priority_score, status, created_at, jira_key
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        tags, priority_score, status, created_at, jira_key, scoring_version
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `
   )
     .bind(
@@ -203,9 +291,19 @@ async function handleSubmit(request: Request, env: Env): Promise<Response> {
       record.priority_score,
       record.status,
       record.created_at,
-      record.jira_key
+      record.jira_key,
+      record.scoring_version
     )
     .run();
+
+  // Record initial score snapshot
+  await recordScoreSnapshot(
+    env,
+    record.id,
+    record.scoring_version,
+    record.priority_score,
+    record.status
+  );
 
   // DEBUG: see which Jira env vars are present
   console.log("JIRA env present?", {
@@ -265,58 +363,35 @@ async function handleSubmit(request: Request, env: Env): Promise<Response> {
   return new Response(msg, { status: 200, headers: corsHeaders() });
 }
 
-// ---------- Jira integration (ADF description) ----------
-
 async function createJiraIssue(env: Env, record: any): Promise<string | null> {
   const url = env.JIRA_BASE_URL.replace(/\/$/, "") + "/rest/api/3/issue";
   const summary = record.request_title || "Revenue Request";
 
   const descriptionParts = [
-    `Requestor: ${record.requestor_name} (${record.requestor_team})`,
+    `*Requestor:* ${record.requestor_name} (${record.requestor_team})`,
     "",
-    "Problem Statement",
+    "*Problem Statement*",
     record.problem_statement || "-",
     "",
-    "Expected Outcome",
+    "*Expected Outcome*",
     record.expected_outcome || "-",
     "",
-    "Systems Touched",
+    "*Systems Touched*",
     record.systems_touched || "-",
     "",
-    "Tags",
+    "*Tags*",
     record.tags || "-",
     "",
-    `Priority Score: ${record.priority_score}`,
+    `*Priority Score:* ${record.priority_score}`,
   ];
 
-  const descriptionText = descriptionParts.join("\n");
-
-  // Atlassian Document Format (ADF) wrapper
-  const descriptionADF = {
-    type: "doc",
-    version: 1,
-    content: descriptionText.split("\n").map((line) => {
-      if (!line) {
-        return { type: "paragraph", content: [] as any[] };
-      }
-      return {
-        type: "paragraph",
-        content: [
-          {
-            type: "text",
-            text: line,
-          },
-        ],
-      };
-    }),
-  };
+  const description = descriptionParts.join("\n");
 
   const payload = {
     fields: {
       project: { key: env.JIRA_PROJECT_KEY },
       summary,
-      description: descriptionADF,
-      // If your issue type isn't literally "Task", change this name
+      description,
       issuetype: { name: "Task" },
     },
   };
@@ -480,11 +555,28 @@ async function handleUpdateIntake(
     "Complete",
     "Blocked",
     "Cancelled",
+    "Triage Review",
+    "Prioritized",
+    "Sent to Epic",
   ];
 
   if (!data.status || !validStatuses.includes(data.status)) {
     return new Response(JSON.stringify({ error: "Invalid status" }), {
       status: 400,
+      headers: corsHeaders({ "Content-Type": "application/json" }),
+    });
+  }
+
+  // Load current score + scoring_version
+  const currentResult = await env.DB.prepare(
+    "SELECT priority_score, scoring_version FROM intake_requests WHERE id = ?"
+  )
+    .bind(id)
+    .all();
+  const currentRow = (currentResult.results || [])[0] as any | undefined;
+  if (!currentRow) {
+    return new Response(JSON.stringify({ error: "Not found" }), {
+      status: 404,
       headers: corsHeaders({ "Content-Type": "application/json" }),
     });
   }
@@ -496,6 +588,15 @@ async function handleUpdateIntake(
   )
     .bind(data.status, updatedAt, id)
     .run();
+
+  // Record score snapshot for status change
+  await recordScoreSnapshot(
+    env,
+    id,
+    currentRow.scoring_version || "unknown",
+    Number(currentRow.priority_score ?? 0),
+    data.status
+  );
 
   return new Response(JSON.stringify({ success: true }), {
     status: 200,
