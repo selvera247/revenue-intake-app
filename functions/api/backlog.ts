@@ -34,7 +34,9 @@ export const onRequestGet: PagesFunction<{ DB: D1Database }> = async (context) =
         END                     AS audit_critical,
 
         COALESCE(priority_score, 0) AS priority_score,
-        jira_key                             -- expose Jira key to cockpit
+        jira_key,
+        triage_owner,
+        triage_notes
       FROM intake_requests
       ORDER BY priority_score DESC, created_at DESC
     `;
