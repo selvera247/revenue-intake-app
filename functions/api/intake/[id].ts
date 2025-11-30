@@ -1,6 +1,15 @@
 // functions/api/intake/[id].ts
 // Handles status updates from the cockpit at: /api/intake/:id
 
+function corsHeaders(extra: Record<string, string> = {}): HeadersInit {
+  return {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, PUT, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    ...extra,
+  };
+}
+
 const ALLOWED_STATUSES = [
   "New",
   "Triage Review",
@@ -12,30 +21,29 @@ const ALLOWED_STATUSES = [
   "Cancelled",
 ];
 
-function corsHeaders(extra: Record<string, string> = {}): HeadersInit {
-  return {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, PUT, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-    ...extra,
-  };
-}
-
-// CORS preflight
-export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, {
-    status: 204,
-    headers: corsHeaders(),
-  });
-};
-
-// PUT /api/intake/:id  { "status": "Prioritized" }
-export const onRequestPut: PagesFunction<{ DB: D1Database }> = async (
-  context
-) => {
+export const onRequest: PagesFunction<{ DB: D1Database }> = async (context) => {
   const { request, env, params } = context;
-  const id = (params.id as string) || "";
+  const method = request.method.toUpperCase();
 
+  // CORS preflight
+  if (method === "OPTIONS") {
+    return new Response(null, {
+      status: 204,
+      headers: corsHeaders(),
+    });
+  }
+
+  if (method !== "PUT") {
+    return new Response(
+      JSON.stringify({ error: "Method not allowed" }),
+      {
+        status: 405,
+        headers: corsHeaders({ "Content-Type": "application/json" }),
+      }
+    );
+  }
+
+  const id = (params.id as string) || "";
   if (!id) {
     return new Response(
       JSON.stringify({ error: "Missing id in path" }),
