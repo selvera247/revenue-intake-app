@@ -127,6 +127,11 @@ export default {
         return await handleListIntake(request, env);
       }
 
+      // GET /api/backlog - formatted for AI cockpit
+      if (pathname === "/api/backlog" && request.method === "GET") {
+        return await handleBacklog(env);
+      }
+
       // /api/intake/:id
       if (pathname.startsWith("/api/intake/")) {
         const id = pathname.split("/").pop() || "";
@@ -518,6 +523,54 @@ async function handleListIntake(
   });
 }
 
+// ---------- /api/backlog (for AI cockpit) ----------
+
+async function handleBacklog(env: Env): Promise<Response> {
+  const query = `
+    SELECT
+      id,                                  -- TEXT PK from your schema
+      request_title           AS name,     -- for Streamlit 'name'
+      requestor_team          AS source,   -- which team is requesting
+      tags                    AS type,     -- use tags as Type for now
+      status,                              -- New / Triage / etc.
+
+      -- Combine key context fields into a single 'pain_points' blob
+      (
+        'Problem: ' || COALESCE(problem_statement, '') || '\n\n' ||
+        'Expected Outcome: ' || COALESCE(expected_outcome, '') || '\n\n' ||
+        'Revenue Impact: ' || COALESCE(revenue_impact, '') || '\n\n' ||
+        'Customer Impact: ' || COALESCE(customer_impact, '') || '\n\n' ||
+        'Required Changes: ' || COALESCE(required_changes, '') || '\n\n' ||
+        'Timeline Pressure: ' || COALESCE(timeline_pressure, '') || '\n\n' ||
+        'Downstream Dependencies: ' || COALESCE(downstream_dependencies, '')
+      )                       AS pain_points,
+
+      systems_touched,                    -- direct mapping
+      revenue_impact          AS revenue_flow_impacted,
+
+      -- Simple mapping: any "High" audit risk => Yes, else No
+      CASE
+        WHEN LOWER(audit_risk) LIKE '%high%' THEN 'Yes'
+        ELSE 'No'
+      END                     AS audit_critical,
+
+      COALESCE(priority_score, 0) AS priority_score
+    FROM intake_requests
+    ORDER BY priority_score DESC, created_at DESC
+  `;
+
+  const result = await env.DB.prepare(query).all();
+  const rows = result.results || [];
+
+  return new Response(
+    JSON.stringify({ projects: rows }),
+    {
+      status: 200,
+      headers: corsHeaders({ "Content-Type": "application/json" }),
+    }
+  );
+}
+
 // ---------- /api/intake/:id (GET) ----------
 
 async function handleGetIntake(id: string, env: Env): Promise<Response> {
@@ -647,7 +700,7 @@ async function handleExportCSV(
   const headersList = Object.keys(rows[0]);
   const escapeCell = (value: any): string => {
     const s = value === null || value === undefined ? "" : String(value);
-    const escaped = s.replace(/"/g, '""');
+    const escaped = s.replace(/\"/g, '""');
     return `"${escaped}"`;
   };
 
