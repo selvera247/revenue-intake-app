@@ -128,7 +128,7 @@ export default {
       }
 
       // GET /api/backlog - formatted for AI cockpit
-      if (pathname === "/api/backlog" && request.method === "GET") {
+      if (pathname.startsWith("/api/backlog") && request.method === "GET") {
         return await handleBacklog(env);
       }
 
