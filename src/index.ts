@@ -154,7 +154,8 @@ export default {
         return await handleExportCSV(request, env);
       }
 
-      return new Response("Not Found", {
+      // Debug 404 so we can see what path didn't match
+      return new Response("NO_MATCH: " + pathname, {
         status: 404,
         headers: corsHeaders(),
       });
@@ -700,7 +701,7 @@ async function handleExportCSV(
   const headersList = Object.keys(rows[0]);
   const escapeCell = (value: any): string => {
     const s = value === null || value === undefined ? "" : String(value);
-    const escaped = s.replace(/\"/g, '""');
+    const escaped = s.replace(/"/g, '""');
     return `"${escaped}"`;
   };
 
