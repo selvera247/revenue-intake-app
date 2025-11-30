@@ -1,5 +1,6 @@
 // functions/api/update_status.ts
-// Updates intake status via PUT /api/update_status with JSON body { id, status }
+// Updates intake status + triage fields via PUT /api/update_status
+// Body: { id, status, triage_owner?, triage_notes? }
 
 function corsHeaders(extra: Record<string, string> = {}): HeadersInit {
   return {
@@ -58,6 +59,10 @@ export const onRequest: PagesFunction<{ DB: D1Database }> = async (context) => {
 
   const id = String(payload.id || "").trim();
   const newStatus = String(payload.status || "").trim();
+  const triageOwnerInput =
+    payload.triage_owner !== undefined ? String(payload.triage_owner) : undefined;
+  const triageNotesInput =
+    payload.triage_notes !== undefined ? String(payload.triage_notes) : undefined;
 
   if (!id) {
     return new Response(
@@ -83,14 +88,15 @@ export const onRequest: PagesFunction<{ DB: D1Database }> = async (context) => {
   }
 
   try {
-    // Ensure row exists
-    const existing = await env.DB.prepare(
-      "SELECT id, status FROM intake_requests WHERE id = ?"
+    // Load existing triage fields so we can preserve if not provided
+    const existingResult = await env.DB.prepare(
+      "SELECT id, status, triage_owner, triage_notes FROM intake_requests WHERE id = ?"
     )
       .bind(id)
       .all();
 
-    if (!existing.results || existing.results.length === 0) {
+    const existingRows = existingResult.results || [];
+    if (existingRows.length === 0) {
       return new Response(
         JSON.stringify({ error: "Not found" }),
         {
@@ -100,23 +106,36 @@ export const onRequest: PagesFunction<{ DB: D1Database }> = async (context) => {
       );
     }
 
+    const existing = existingRows[0] as any;
+
+    const triageOwner =
+      triageOwnerInput !== undefined ? triageOwnerInput : (existing.triage_owner ?? "");
+    const triageNotes =
+      triageNotesInput !== undefined ? triageNotesInput : (existing.triage_notes ?? "");
+
     const updatedAt = new Date().toISOString();
 
     await env.DB.prepare(
-      "UPDATE intake_requests SET status = ?, updated_at = ? WHERE id = ?"
+      "UPDATE intake_requests SET status = ?, triage_owner = ?, triage_notes = ?, updated_at = ? WHERE id = ?"
     )
-      .bind(newStatus, updatedAt, id)
+      .bind(newStatus, triageOwner, triageNotes, updatedAt, id)
       .run();
 
     return new Response(
-      JSON.stringify({ success: true, id, status: newStatus }),
+      JSON.stringify({
+        success: true,
+        id,
+        status: newStatus,
+        triage_owner: triageOwner,
+        triage_notes: triageNotes,
+      }),
       {
         status: 200,
         headers: corsHeaders({ "Content-Type": "application/json" }),
       }
     );
   } catch (err: any) {
-    console.error("Error updating status:", err);
+    console.error("Error updating status/triage:", err);
     return new Response(
       JSON.stringify({ error: String(err?.message || err) }),
       {
