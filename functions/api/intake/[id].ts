@@ -1,0 +1,120 @@
+// functions/api/intake/[id].ts
+// Handles status updates from the cockpit at: /api/intake/:id
+
+const ALLOWED_STATUSES = [
+  "New",
+  "Triage Review",
+  "Prioritized",
+  "Sent to Epic",
+  "In Progress",
+  "Complete",
+  "Blocked",
+  "Cancelled",
+];
+
+function corsHeaders(extra: Record<string, string> = {}): HeadersInit {
+  return {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, PUT, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    ...extra,
+  };
+}
+
+// CORS preflight
+export const onRequestOptions: PagesFunction = async () => {
+  return new Response(null, {
+    status: 204,
+    headers: corsHeaders(),
+  });
+};
+
+// PUT /api/intake/:id  { "status": "Prioritized" }
+export const onRequestPut: PagesFunction<{ DB: D1Database }> = async (
+  context
+) => {
+  const { request, env, params } = context;
+  const id = (params.id as string) || "";
+
+  if (!id) {
+    return new Response(
+      JSON.stringify({ error: "Missing id in path" }),
+      {
+        status: 400,
+        headers: corsHeaders({ "Content-Type": "application/json" }),
+      }
+    );
+  }
+
+  let payload: any;
+  try {
+    payload = await request.json();
+  } catch {
+    return new Response(
+      JSON.stringify({ error: "Invalid JSON body" }),
+      {
+        status: 400,
+        headers: corsHeaders({ "Content-Type": "application/json" }),
+      }
+    );
+  }
+
+  const newStatus = String(payload.status || "").trim();
+
+  if (!ALLOWED_STATUSES.includes(newStatus)) {
+    return new Response(
+      JSON.stringify({
+        error: "Invalid status",
+        allowed: ALLOWED_STATUSES,
+      }),
+      {
+        status: 400,
+        headers: corsHeaders({ "Content-Type": "application/json" }),
+      }
+    );
+  }
+
+  try {
+    // Ensure row exists
+    const existing = await env.DB.prepare(
+      "SELECT id, status FROM intake_requests WHERE id = ?"
+    )
+      .bind(id)
+      .all();
+
+    if (!existing.results || existing.results.length === 0) {
+      return new Response(
+        JSON.stringify({ error: "Not found" }),
+        {
+          status: 404,
+          headers: corsHeaders({ "Content-Type": "application/json" }),
+        }
+      );
+    }
+
+    const updatedAt = new Date().toISOString();
+
+    await env.DB.prepare(
+      "UPDATE intake_requests SET status = ?, updated_at = ? WHERE id = ?"
+    )
+      .bind(newStatus, updatedAt, id)
+      .run();
+
+    return new Response(
+      JSON.stringify({ success: true, id, status: newStatus }),
+      {
+        status: 200,
+        headers: corsHeaders({ "Content-Type": "application/json" }),
+      }
+    );
+  } catch (err: any) {
+    console.error("Error updating status:", err);
+    return new Response(
+      JSON.stringify({ error: String(err?.message || err) }),
+      {
+        status: 500,
+        headers: corsHeaders({ "Content-Type": "application/json" }),
+      }
+    );
+  }
+};
