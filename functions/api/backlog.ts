@@ -7,24 +7,35 @@ export const onRequestGet: PagesFunction<{ DB: D1Database }> = async (context) =
   try {
     const query = `
       SELECT
-        id,                                  -- TEXT PK from your schema
+        id,                                  -- TEXT PK
         request_title           AS name,     -- for Streamlit 'name'
         requestor_team          AS source,   -- which team is requesting
-        tags                    AS type,     -- use tags as Type for now
-        status,                              -- New / Triage / etc.
+        tags                    AS type,     -- treat tags as "type" for now
+        status,
 
-        -- Combine key context fields into a single 'pain_points' blob
+        -- Raw fields for readiness scoring
+        problem_statement,
+        expected_outcome,
+        required_changes,
+        systems_touched,
+        data_objects,
+        downstream_dependencies,
+        revenue_impact,
+        audit_risk,
+        control_impact,
+
+        -- Combined text view for display
         (
           'Problem: ' || COALESCE(problem_statement, '') || '\n\n' ||
           'Expected Outcome: ' || COALESCE(expected_outcome, '') || '\n\n' ||
-          'Revenue Impact: ' || COALESCE(revenue_impact, '') || '\n\n' ||
-          'Customer Impact: ' || COALESCE(customer_impact, '') || '\n\n' ||
           'Required Changes: ' || COALESCE(required_changes, '') || '\n\n' ||
+          'Revenue Impact: ' || COALESCE(revenue_impact, '') || '\n\n' ||
+          'Audit Risk: ' || COALESCE(audit_risk, '') || '\n\n' ||
           'Timeline Pressure: ' || COALESCE(timeline_pressure, '') || '\n\n' ||
           'Downstream Dependencies: ' || COALESCE(downstream_dependencies, '')
         )                       AS pain_points,
 
-        systems_touched,                    -- direct mapping
+        -- For impact / risk logic in the cockpit
         revenue_impact          AS revenue_flow_impacted,
 
         -- Simple mapping: any "High" audit risk => Yes, else No
@@ -48,7 +59,7 @@ export const onRequestGet: PagesFunction<{ DB: D1Database }> = async (context) =
       status: 200,
       headers: {
         "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*", // allow Streamlit
+        "Access-Control-Allow-Origin": "*",
       },
     });
   } catch (err: any) {
